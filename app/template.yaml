@@ -4,20 +4,54 @@ Description: >
   Sample
   SAM Template for app
 
+Parameters:
+ Environment:
+   Type: String
+   AllowedValues:
+   - dev
+   - prod
+
+Mappings:
+ EnvironmentMap:
+   dev:
+     ApiGatewayLoggingLevel: INFO
+   prod:
+     ApiGatewayLoggingLevel: ERROR
+
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-specification-template-anatomy-globals.html
 Globals:
+  Api:
+    MethodSettings:
+      - DataTraceEnabled: true
+        LoggingLevel: !FindInMap [ EnvironmentMap, !Ref Environment, ApiGatewayLoggingLevel]
+        MetricsEnabled: false
+        ResourcePath: '/*'
+        HttpMethod: '*'
+        ThrottlingRateLimit: 1
+        ThrottlingBurstLimit: 1
+    TracingEnabled: true
+
   Function:
+    CodeUri: functions/
+    Runtime: python3.8
+    MemorySize: 512
     Timeout: 3
+    Tracing: Active
 
 Resources:
+  ExampleApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+
   ExampleFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: functions/
       Handler: example.app.lambda_handler
-      Runtime: python3.8
       Events:
-        HelloWorld:
+        ExampleGet:
           Type: Api
           Properties:
+            RestApiId: !Ref ExampleApi
             Path: /examples
             Method: get
